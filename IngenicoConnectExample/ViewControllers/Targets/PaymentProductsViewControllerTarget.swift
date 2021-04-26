@@ -304,18 +304,19 @@ class PaymentProductsViewControllerTarget: NSObject, PKPaymentAuthorizationViewC
         
         generateSummaryItems()
         let paymentRequest = PKPaymentRequest()
-        paymentRequest.countryCode = context.countryCode.rawValue
+
+        if let acquirerCountry = paymentProduct.acquirerCountry,
+           !acquirerCountry.isEmpty{
+            paymentRequest.countryCode = acquirerCountry
+        } else {
+            paymentRequest.countryCode = context.countryCode.rawValue
+        }
+
         paymentRequest.currencyCode = context.amountOfMoney.currencyCode.rawValue
         paymentRequest.supportedNetworks = paymentProductNetworks.paymentProductNetworks
         paymentRequest.paymentSummaryItems = summaryItems
-        
-        // These capabilities should always be set to this value unless the merchant specifically does not want either Debit or Credit
-        if #available(iOS 9.0, *) {
-            paymentRequest.merchantCapabilities = [.capability3DS, .capabilityDebit, .capabilityCredit]
-        } else {
-            paymentRequest.merchantCapabilities = [.capability3DS]
-        }
-        
+        paymentRequest.merchantCapabilities = [.capability3DS, .capabilityDebit, .capabilityCredit]
+
         // This merchant id is set in the merchants apple developer portal and is linked to a certificate
         paymentRequest.merchantIdentifier = merchantId
         
@@ -328,7 +329,7 @@ class PaymentProductsViewControllerTarget: NSObject, PKPaymentAuthorizationViewC
         // The authorizationViewController will be nil if the paymentRequest was incomplete or not created correctly
         if let authorizationViewController = authorizationViewController, PKPaymentAuthorizationViewController.canMakePayments(usingNetworks: paymentProductNetworks.paymentProductNetworks) {
             applePayPaymentProduct = paymentProduct
-            navigationController!.topViewController!.present(authorizationViewController, animated: true, completion: { _ in })
+            navigationController!.topViewController!.present(authorizationViewController, animated: true, completion: { return })
         }
     }
     
@@ -455,7 +456,7 @@ class PaymentProductsViewControllerTarget: NSObject, PKPaymentAuthorizationViewC
     // The delegate is responsible for dismissing the view controller in this method.
     func paymentAuthorizationViewControllerDidFinish(_ controller: PKPaymentAuthorizationViewController) {
         applePayPaymentProduct = nil
-        authorizationViewController?.dismiss(animated: true, completion: { _ in })
+        authorizationViewController?.dismiss(animated: true, completion: { return })
     }
     
     // Sent when the user has selected a new payment card.  Use this delegate callback if you need to
